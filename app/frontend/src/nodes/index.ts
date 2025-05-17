@@ -1,4 +1,4 @@
-import { type NodeTypes, Edge, MarkerType } from '@xyflow/react';
+import { type NodeTypes } from '@xyflow/react';
 
 import { AgentNode } from './components/agent-node';
 import { TextInputNode } from './components/text-input-node';
@@ -41,25 +41,6 @@ export const initialNodes: AppNode[] = [
   },
 ];
 
-// TODO (virat) temporary, delete after testing
-export const initialEdges: Edge[] = [
-  {
-    id: 'start-to-warren',
-    source: 'text-input-node',
-    target: 'warren_buffett',
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-    },
-  },
-  {
-    id: 'warren-to-output',
-    source: 'warren_buffett',
-    target: 'text-output-node',
-    markerEnd: {
-      type: MarkerType.ArrowClosed,
-    },
-  },
-];
 
 export const nodeTypes = {
   'agent-node': AgentNode,
