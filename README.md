@@ -46,7 +46,8 @@ By using this software, you agree to use it solely for learning purposes.
   - [Using Docker](#using-docker)
 - [Usage](#usage)
   - [Running the Hedge Fund](#running-the-hedge-fund)
-  - [Running the Backtester](#running-the-backtester)
+- [Running the Backtester](#running-the-backtester)
+- [Running Tests](#running-tests)
 - [Project Structure](#project-structure)
 - [Contributing](#contributing)
 - [Feature Requests](#feature-requests)
@@ -231,8 +232,16 @@ poetry run python src/backtester.py --ticker AAPL,MSFT,NVDA --ollama
 run.bat --ticker AAPL,MSFT,NVDA --ollama backtest
 ```
 
+### Running Tests
 
-## Project Structure 
+Run the unit tests with [pytest](https://pytest.org/):
+
+```bash
+poetry run pytest
+```
+
+
+## Project Structure
 ```
 ai-hedge-fund/
 ├── src/
