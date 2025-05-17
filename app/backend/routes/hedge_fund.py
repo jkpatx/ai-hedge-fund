@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Header
 from fastapi.responses import StreamingResponse
 import asyncio
 
@@ -6,13 +6,38 @@ from app.backend.models.schemas import ErrorResponse, HedgeFundRequest
 from app.backend.models.events import StartEvent, ProgressUpdateEvent, ErrorEvent, CompleteEvent
 from app.backend.services.graph import create_graph, parse_hedge_fund_response, run_graph_async
 from app.backend.services.portfolio import create_portfolio
-from src.utils.progress import progress
+from src.utils.progress import AgentProgress, set_progress, progress
+from fastapi import Request, Depends
+import os
+import time
+from collections import defaultdict
 
 router = APIRouter(prefix="/hedge-fund")
+
+RATE_LIMIT = 10
+RATE_PERIOD = 60
+_request_log: defaultdict[str, list] = defaultdict(list)
+
+
+async def verify_api_key(x_api_key: str = Header(...)):
+    expected = os.environ.get("HEDGE_FUND_API_KEY")
+    if expected and x_api_key != expected:
+        raise HTTPException(status_code=401, detail="Invalid API key")
+
+
+async def rate_limiter(request: Request):
+    ip = request.client.host if request.client else "unknown"
+    now = time.time()
+    timestamps = [t for t in _request_log[ip] if now - t < RATE_PERIOD]
+    if len(timestamps) >= RATE_LIMIT:
+        raise HTTPException(status_code=429, detail="Too many requests")
+    timestamps.append(now)
+    _request_log[ip] = timestamps
 
 
 @router.post(
     path="/run",
+    dependencies=[Depends(verify_api_key), Depends(rate_limiter)],
     responses={
         200: {"description": "Successful response with streaming updates"},
         400: {"model": ErrorResponse, "description": "Invalid request parameters"},
@@ -21,6 +46,10 @@ router = APIRouter(prefix="/hedge-fund")
 )
 async def run_hedge_fund(request: HedgeFundRequest):
     try:
+        # Create a new progress tracker for this request
+        request_progress = AgentProgress()
+        set_progress(request_progress)
+
         # Get the start date if not provided
         start_date = request.get_start_date()
 
@@ -97,6 +126,7 @@ async def run_hedge_fund(request: HedgeFundRequest):
             finally:
                 # Clean up
                 progress.unregister_handler(progress_handler)
+                set_progress(AgentProgress())
                 if "run_task" in locals() and not run_task.done():
                     run_task.cancel()
 

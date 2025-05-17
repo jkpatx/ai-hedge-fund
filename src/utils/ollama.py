@@ -13,8 +13,16 @@ from . import docker
 # Constants
 OLLAMA_SERVER_URL = "http://localhost:11434"
 OLLAMA_API_MODELS_ENDPOINT = f"{OLLAMA_SERVER_URL}/api/tags"
-OLLAMA_DOWNLOAD_URL = {"darwin": "https://ollama.com/download/darwin", "windows": "https://ollama.com/download/windows", "linux": "https://ollama.com/download/linux"}  # macOS  # Windows  # Linux
-INSTALLATION_INSTRUCTIONS = {"darwin": "curl -fsSL https://ollama.com/install.sh | sh", "windows": "# Download from https://ollama.com/download/windows and run the installer", "linux": "curl -fsSL https://ollama.com/install.sh | sh"}
+OLLAMA_DOWNLOAD_URL = {
+    "darwin": "https://ollama.com/download/darwin",
+    "windows": "https://ollama.com/download/windows",
+    "linux": "https://ollama.com/download/linux",
+}  # macOS  # Windows  # Linux
+INSTALLATION_INSTRUCTIONS = {
+    "darwin": "Download the installer from https://ollama.com/download/darwin",
+    "windows": "Download and run the installer from https://ollama.com/download/windows",
+    "linux": "Download the install script from https://ollama.com/install.sh and review before running",
+}
 
 
 def is_ollama_installed() -> bool:
@@ -29,7 +37,7 @@ def is_ollama_installed() -> bool:
             return False
     elif system == "windows":  # Windows
         try:
-            result = subprocess.run(["where", "ollama"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, shell=True)
+            result = subprocess.run(["where", "ollama"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             return result.returncode == 0
         except Exception:
             return False
@@ -73,7 +81,7 @@ def start_ollama_server() -> bool:
         if system == "darwin" or system == "linux":  # macOS or Linux
             subprocess.Popen(["ollama", "serve"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         elif system == "windows":  # Windows
-            subprocess.Popen(["ollama", "serve"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+            subprocess.Popen(["ollama", "serve"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         else:
             print(f"{Fore.RED}Unsupported operating system: {system}{Style.RESET_ALL}")
             return False
@@ -130,7 +138,18 @@ def install_ollama() -> bool:
             if questionary.confirm("Would you like to try the command-line installation instead? (For advanced users)", default=False).ask():
                 print(f"{Fore.YELLOW}Attempting command-line installation...{Style.RESET_ALL}")
                 try:
-                    install_process = subprocess.run(["bash", "-c", "curl -fsSL https://ollama.com/install.sh | sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                    import tempfile
+                    import requests
+
+                    print("Downloading installation script for review...")
+                    response = requests.get("https://ollama.com/install.sh", timeout=10)
+                    response.raise_for_status()
+                    with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmp:
+                        tmp.write(response.text)
+                        script_path = tmp.name
+
+                    print(f"Script downloaded to {script_path}. It will be executed with bash.")
+                    install_process = subprocess.run(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
                     if install_process.returncode == 0:
                         print(f"{Fore.GREEN}Ollama installed successfully via command line.{Style.RESET_ALL}")
@@ -145,8 +164,18 @@ def install_ollama() -> bool:
     elif system == "linux":  # Linux
         print(f"{Fore.YELLOW}Installing Ollama...{Style.RESET_ALL}")
         try:
-            # Run the installation command as a single command
-            install_process = subprocess.run(["bash", "-c", "curl -fsSL https://ollama.com/install.sh | sh"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            import tempfile
+            import requests
+
+            print("Downloading installation script for review...")
+            response = requests.get("https://ollama.com/install.sh", timeout=10)
+            response.raise_for_status()
+            with tempfile.NamedTemporaryFile(delete=False, mode="w") as tmp:
+                tmp.write(response.text)
+                script_path = tmp.name
+
+            print(f"Script downloaded to {script_path}. It will be executed with bash.")
+            install_process = subprocess.run(["bash", script_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
             if install_process.returncode == 0:
                 print(f"{Fore.GREEN}Ollama installed successfully.{Style.RESET_ALL}")

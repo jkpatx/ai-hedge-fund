@@ -5,6 +5,7 @@ from rich.table import Table
 from rich.style import Style
 from rich.text import Text
 from typing import Dict, Optional, Callable, List
+from contextvars import ContextVar
 
 console = Console()
 
@@ -111,4 +112,22 @@ class AgentProgress:
 
 
 # Create a global instance
-progress = AgentProgress()
+_progress_ctx: ContextVar[AgentProgress] = ContextVar("progress", default=AgentProgress())
+
+
+def get_progress() -> AgentProgress:
+    """Retrieve the progress object for the current context."""
+    return _progress_ctx.get()
+
+
+def set_progress(p: AgentProgress):
+    """Set the progress object for the current context."""
+    _progress_ctx.set(p)
+
+
+class ProgressProxy:
+    def __getattr__(self, name):
+        return getattr(get_progress(), name)
+
+
+progress = ProgressProxy()
